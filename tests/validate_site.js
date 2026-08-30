@@ -14,7 +14,8 @@ const pages = [
 const allowedHosts = new Set([
   'stylepanda.me',
   'brickmissing.stylepanda.me',
-  'tools.stylepanda.me'
+  'tools.stylepanda.me',
+  'dsb.gv.at'
 ]);
 const errors = [];
 let localReferences = 0;
@@ -72,7 +73,7 @@ for (const page of pages) {
 
 function projectFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    if (entry.name === '.git' || entry.name === 'tests' || entry.name === 'STYLEPANDA_TOOLS_PHASE_1_REPORT.txt') return [];
+    if (entry.name === '.git' || entry.name === 'tests' || /^STYLEPANDA_TOOLS_.*_REPORT\.txt$/.test(entry.name)) return [];
     const filename = path.join(directory, entry.name);
     return entry.isDirectory() ? projectFiles(filename) : [filename];
   });
@@ -100,6 +101,31 @@ if (!css.includes(':focus-visible')) errors.push('Sichtbarer Fokuszustand fehlt'
 const sitemap = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
 for (const route of ['/', '/tools/text/', '/tools/pdf/', '/datenschutz.html']) {
   if (!sitemap.includes(`https://tools.stylepanda.me${route}`)) errors.push(`Sitemap-Eintrag fehlt: ${route}`);
+}
+
+const deploy = fs.readFileSync(path.join(root, 'scripts/deploy.sh'), 'utf8');
+const deploymentMarkers = [
+  'set -Eeuo pipefail',
+  'flock -n 9',
+  'git@github-stylepanda-tools:StylePanda/StylePanda-Tools.git',
+  'GIT_SSH_COMMAND=',
+  'git -C "${REPO_DIR}" archive "${target_commit}"',
+  'mv -Tf -- "${temporary_link}" "${link_path}"',
+  'Content-Security-Policy',
+  'Missing URL returned',
+  'rollback',
+  'KEEP_RELEASES=5'
+];
+for (const marker of deploymentMarkers) {
+  if (!deploy.includes(marker)) errors.push(`Deployment-Marker fehlt: ${marker}`);
+}
+const unsafeDeploymentPatterns = [
+  ['StrictHostKeyChecking deaktiviert', /StrictHostKeyChecking\s*=\s*no/i],
+  ['Root-SSH-Konfiguration', /\/root\/\.ssh/],
+  ['nginx-Neuladen', /(?:systemctl|service)\s+(?:reload\s+)?nginx|nginx\s+-s/i]
+];
+for (const [label, pattern] of unsafeDeploymentPatterns) {
+  if (pattern.test(deploy)) errors.push(`Unsicheres Deployment-Muster: ${label}`);
 }
 
 if (errors.length) {
