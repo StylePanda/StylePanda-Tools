@@ -1,0 +1,19 @@
+# Codex / local reports
+STYLEPANDA_TOOLS_*_REPORT.txt
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temporary files
+*.tmp
+*.log
