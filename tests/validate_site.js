@@ -103,6 +103,35 @@ for (const route of ['/', '/tools/text/', '/tools/pdf/', '/datenschutz.html']) {
   if (!sitemap.includes(`https://tools.stylepanda.me${route}`)) errors.push(`Sitemap-Eintrag fehlt: ${route}`);
 }
 
+const privacy = fs.readFileSync(path.join(root, 'datenschutz.html'), 'utf8');
+const privacyMarkers = [
+  'Simon Weiss',
+  'Wien, Österreich',
+  'mailto:simonweiss05@outlook.com',
+  'https://brickmissing.stylepanda.me/impressum/',
+  'Living-Bots',
+  'Nach Angaben des Hostinganbieters',
+  'Frankfurt am Main, Deutschland',
+  'access_log off',
+  'Protokollstufe <code>warn</code>',
+  'einschließlich einer IP-Adresse',
+  'ausschließlich durch JavaScript im Browser',
+  'keine Analysewerkzeuge, kein Tracking und keine externe Telemetrie',
+  'keine Werbung und kein Affiliate-Marketing',
+  'Österreichische Datenschutzbehörde'
+];
+for (const marker of privacyMarkers) {
+  if (!privacy.includes(marker)) errors.push(`Datenschutz-Marker fehlt: ${marker}`);
+}
+const controllerSection = privacy.match(/<article id="verantwortlicher"[\s\S]*?<\/article>/i)?.[0] || '';
+if (/Straße|Strasse|Gasse|Hausnummer|Telefon|USt|Handelsregister/i.test(controllerSection)) {
+  errors.push('Nicht zulässige Adress-, Telefon- oder Unternehmensangabe im Verantwortlichen-Abschnitt');
+}
+if (/Art\.\s*28|\bAVV\b/i.test(privacy)) errors.push('Nicht verifizierte Art.-28-/AVV-Angabe in der Datenschutzerklärung');
+if (/TODO[\s\S]{0,200}(Verantwort|Impressum)|(?:Verantwort|Impressum)[\s\S]{0,200}TODO/i.test(privacy)) {
+  errors.push('Obsoleter Verantwortlichen-/Impressums-TODO vorhanden');
+}
+
 const deploy = fs.readFileSync(path.join(root, 'scripts/deploy.sh'), 'utf8');
 const deploymentMarkers = [
   'set -Eeuo pipefail',
