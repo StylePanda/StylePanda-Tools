@@ -41,10 +41,38 @@ Vor dem Produktionsstart müssen Hosting- und Webserver-Konfiguration, HTTP-Sich
 
 ```text
 PC / Codex
-    ↓
+    ↓ Commit
 GitHub (Branch: main)
-    ↓
+    ↓ Produktions-Deployment
 Production Server
+    ↓ Immutable Release + current-Symlink
+nginx
 ```
 
-Dieses Repository dokumentiert bewusst keine erfundenen Produktionsbefehle. Deployment und Produktionsvalidierung erfolgen erst, wenn die reale Serverumgebung feststeht.
+Die Website wird ausschließlich über Git ausgerollt. Änderungen entstehen auf
+dem PC, werden nach Prüfung separat committed und nach `main` gepusht. Erst
+danach holt das Produktionssystem den exakten Stand von `origin/main`, erstellt
+ein unveränderliches Release und schaltet den `current`-Symlink atomar um.
+
+Der spätere normale Produktionsaufruf lautet:
+
+```text
+sudo /var/www/stylepanda-tools/deploy.sh
+```
+
+Die auf dem Server installierte Datei `/var/www/stylepanda-tools/deploy.sh` ist
+eine root-eigene operative Kopie von `scripts/deploy.sh`. Das Skript wird nicht
+aus dem öffentlichen Web-Release ausgeliefert. Produktionsdateien werden nicht
+manuell bearbeitet und Deployments werden nicht direkt vom lokalen PC gestartet.
+
+Der Ablauf ist:
+
+```text
+PC / Codex
+    ↓
+Git commit
+    ↓
+GitHub main
+    ↓
+Production deploy
+```
