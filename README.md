@@ -1,12 +1,14 @@
 # StylePanda Tools
 
-StylePanda Tools ist eine kostenlose, werbefreie und nichtkommerzielle Sammlung von Browser-Werkzeugen. Die erste verfügbare Funktionsgruppe umfasst sechs Text Tools; PDF-Tools sind geplant.
+StylePanda Tools ist eine kostenlose, werbefreie und nichtkommerzielle Sammlung von Browser-Werkzeugen. Verfügbar sind sechs Text Tools und zwölf PDF Tools.
 
 ## Privacy-First Architektur
 
 Die Website ist darauf ausgelegt, spätere Text- und PDF-Verarbeitung ausschließlich lokal im Browser auszuführen. Nutzereingaben und ausgewählte Dateien dürfen nicht zur Verarbeitung an den StylePanda-Server oder externe Dienste übertragen werden.
 
 Die Text Tools verarbeiten Eingaben ausschließlich im Arbeitsspeicher des Browsers. Es gibt keine Upload-Funktionen, Benutzerkonten, Datenbank, API, serverseitige Inhaltsverarbeitung, Werbung, Analyse oder Telemetrie.
+
+Auch PDFs und Bilder werden ausschließlich im Browser-Arbeitsspeicher verarbeitet. Die lokal vendorten Open-Source-Bibliotheken, Versionen, Einsatzzwecke und Lizenzen sind in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) dokumentiert.
 
 ## Technischer Aufbau
 
@@ -16,6 +18,7 @@ Die Text Tools verarbeiten Eingaben ausschließlich im Arbeitsspeicher des Brows
 - keine Frameworks und kein Build-System
 - keine externen Fonts, Skripte oder CDNs
 - direkt als statische Website über nginx auslieferbar
+- lokal vendorte, fest gepinnte Browser-Bibliotheken für PDF- und ZIP-Verarbeitung
 
 ## Lokale Entwicklung
 

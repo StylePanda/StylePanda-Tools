@@ -15,7 +15,19 @@ const pages = [
   'tools/text/sortieren/index.html',
   'tools/text/duplikate/index.html',
   'tools/text/suchen-ersetzen/index.html',
-  'tools/pdf/index.html'
+  'tools/pdf/index.html',
+  'tools/pdf/zusammenfuegen/index.html',
+  'tools/pdf/teilen/index.html',
+  'tools/pdf/extrahieren/index.html',
+  'tools/pdf/loeschen/index.html',
+  'tools/pdf/drehen/index.html',
+  'tools/pdf/anordnen/index.html',
+  'tools/pdf/metadaten/index.html',
+  'tools/pdf/komprimieren/index.html',
+  'tools/pdf/bilder-extrahieren/index.html',
+  'tools/pdf/bilder-zu-pdf/index.html',
+  'tools/pdf/seitengroesse/index.html',
+  'tools/pdf/pdf-zu-bilder/index.html'
 ];
 const allowedHosts = new Set([
   'stylepanda.me',
@@ -71,6 +83,14 @@ for (const page of pages) {
     if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
     if (!source.includes('text-tools.js')) errors.push(`${page}: gemeinsame Text-Tool-Logik fehlt`);
   }
+  if (/tools\/pdf\/(?:zusammenfuegen|teilen|extrahieren|loeschen|drehen|anordnen|metadaten|komprimieren|bilder-extrahieren|bilder-zu-pdf|seitengroesse|pdf-zu-bilder)\/index\.html$/.test(page)) {
+    if (!source.includes('Lokale Verarbeitung:')) errors.push(`${page}: PDF-Hinweis zur lokalen Verarbeitung fehlt`);
+    if (!source.includes('data-pdf-tool=')) errors.push(`${page}: PDF-Tool-Konfiguration fehlt`);
+    for (const asset of ['pdf-lib.min.js', 'jszip.min.js', 'pdf-tools-core.js', 'pdf-tools-app.mjs']) {
+      if (!source.includes(asset)) errors.push(`${page}: lokale PDF-Abhängigkeit fehlt: ${asset}`);
+    }
+    if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
+  }
 
   const references = source.matchAll(/\b(?:href|src)=["']([^"']+)["']/gi);
   for (const match of references) {
@@ -92,7 +112,7 @@ for (const page of pages) {
 
 function projectFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    if (entry.name === '.git' || entry.name === 'tests' || /^STYLEPANDA_TOOLS_.*_REPORT\.txt$/.test(entry.name)) return [];
+    if (entry.name === '.git' || entry.name === 'tests' || (entry.name === 'vendor' && path.basename(directory) === 'assets') || /^STYLEPANDA_TOOLS_.*_REPORT\.txt$/.test(entry.name)) return [];
     const filename = path.join(directory, entry.name);
     return entry.isDirectory() ? projectFiles(filename) : [filename];
   });
@@ -100,7 +120,6 @@ function projectFiles(directory) {
 
 const projectText = projectFiles(root).map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 const forbidden = [
-  ['Upload-Feldelement', /<input[^>]+type=["']file["']/i],
   ['Netzwerkrequest per fetch', /\bfetch\s*\(/i],
   ['Netzwerkrequest per XHR', /new\s+XMLHttpRequest/i],
   ['WebSocket', /new\s+WebSocket\s*\(/i],
@@ -130,6 +149,37 @@ for (const route of textToolRoutes) {
   if (!textOverview.includes(`href="${route}"`)) errors.push(`Text-Übersicht verlinkt Tool nicht: ${route}`);
 }
 if (textOverview.includes('In Vorbereitung')) errors.push('Text-Übersicht enthält noch einen In-Vorbereitung-Platzhalter');
+const pdfToolRoutes = ['/tools/pdf/zusammenfuegen/', '/tools/pdf/teilen/', '/tools/pdf/extrahieren/', '/tools/pdf/loeschen/', '/tools/pdf/drehen/', '/tools/pdf/anordnen/', '/tools/pdf/metadaten/', '/tools/pdf/komprimieren/', '/tools/pdf/bilder-extrahieren/', '/tools/pdf/bilder-zu-pdf/', '/tools/pdf/seitengroesse/', '/tools/pdf/pdf-zu-bilder/'];
+const pdfOverview = fs.readFileSync(path.join(root, 'tools/pdf/index.html'), 'utf8');
+for (const route of pdfToolRoutes) {
+  if (!sitemap.includes(`https://tools.stylepanda.me${route}`)) errors.push(`Sitemap-Eintrag fehlt: ${route}`);
+  if (!pdfOverview.includes(`href="${route}"`)) errors.push(`PDF-Übersicht verlinkt Tool nicht: ${route}`);
+}
+if (pdfOverview.includes('In Vorbereitung')) errors.push('PDF-Übersicht enthält noch einen In-Vorbereitung-Platzhalter');
+
+const requiredVendorFiles = [
+  'assets/vendor/pdf-lib/pdf-lib.min.js', 'assets/vendor/pdf-lib/LICENSE.md',
+  'assets/vendor/pdfjs/pdf.min.mjs', 'assets/vendor/pdfjs/pdf.worker.min.mjs', 'assets/vendor/pdfjs/LICENSE',
+  'assets/vendor/jszip/jszip.min.js', 'assets/vendor/jszip/LICENSE.markdown'
+];
+for (const file of requiredVendorFiles) {
+  if (!fs.existsSync(path.join(root, file))) errors.push(`Vendorte Produktionsdatei fehlt: ${file}`);
+}
+const pdfApplication = ['assets/js/pdf-tools-core.js', 'assets/js/pdf-tools-app.mjs'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
+const unsafePdfPatterns = [
+  ['Nutzerdokument-Netzwerkrequest', /\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon/i],
+  ['Dokumentpersistenz', /localStorage|sessionStorage|indexedDB|document\.cookie|caches\.(?:open|match)/i],
+  ['Unsichere HTML-Ausgabe', /\.innerHTML\s*=|document\.write/i],
+  ['Dynamische Codeausführung', /\beval\s*\(|new\s+Function\s*\(/i],
+  ['Dokumentdaten in URL', /location\.(?:search|hash)\s*=|history\.(?:pushState|replaceState)/i],
+  ['Externer Endpunkt', /https?:\/\//i]
+];
+for (const [label, pattern] of unsafePdfPatterns) {
+  if (pattern.test(pdfApplication)) errors.push(`PDF-Anwendung enthält verbotenes Muster: ${label}`);
+}
+if (!pdfApplication.includes('URL.revokeObjectURL')) errors.push('PDF-Anwendung widerruft Objekt-URLs nicht');
+if (!pdfApplication.includes('isEvalSupported: false')) errors.push('PDF.js-Auswertung ist nicht explizit deaktiviert');
+if (!pdfApplication.includes("getDocument(Object.assign({ data")) errors.push('PDF.js wird nicht explizit mit lokalen Dokumentdaten geladen');
 
 const privacy = fs.readFileSync(path.join(root, 'datenschutz.html'), 'utf8');
 const privacyMarkers = [
@@ -193,4 +243,4 @@ if (errors.length) {
 
 console.log(`VALIDIERUNG ERFOLGREICH: ${pages.length} HTML-Seiten, ${localReferences} lokale Referenzen`);
 console.log('Je Seite genau ein H1; interne Ziele und lokale Assets vorhanden.');
-console.log('Keine Inline-Handler, Upload-Felder, Tracker oder Netzwerkrequests gefunden.');
+console.log('Keine Inline-Handler, Tracker, externen Laufzeitabhängigkeiten oder Dokument-Netzwerkrequests gefunden.');
