@@ -9,6 +9,12 @@ const pages = [
   '404.html',
   'datenschutz.html',
   'tools/text/index.html',
+  'tools/text/zaehler/index.html',
+  'tools/text/bereinigen/index.html',
+  'tools/text/gross-klein/index.html',
+  'tools/text/sortieren/index.html',
+  'tools/text/duplikate/index.html',
+  'tools/text/suchen-ersetzen/index.html',
   'tools/pdf/index.html'
 ];
 const allowedHosts = new Set([
@@ -19,6 +25,8 @@ const allowedHosts = new Set([
 ]);
 const errors = [];
 let localReferences = 0;
+const titles = new Map();
+const descriptions = new Map();
 
 function resolveLocal(page, reference) {
   const clean = reference.split(/[?#]/, 1)[0];
@@ -41,6 +49,12 @@ for (const page of pages) {
   if (h1Count !== 1) errors.push(`${page}: ${h1Count} H1 statt genau 1`);
   if (!/<title>[^<]+<\/title>/i.test(source)) errors.push(`${page}: title fehlt`);
   if (!/<meta\s+name="description"\s+content="[^"]+"/i.test(source)) errors.push(`${page}: Meta-Description fehlt`);
+  const title = source.match(/<title>([^<]+)<\/title>/i)?.[1];
+  const description = source.match(/<meta\s+name="description"\s+content="([^"]+)"/i)?.[1];
+  if (title && titles.has(title)) errors.push(`${page}: Title ist nicht eindeutig (${titles.get(title)})`);
+  if (description && descriptions.has(description)) errors.push(`${page}: Meta-Description ist nicht eindeutig (${descriptions.get(description)})`);
+  if (title) titles.set(title, page);
+  if (description) descriptions.set(description, page);
   if (!/<link\s+rel="canonical"\s+href="https:\/\/tools\.stylepanda\.me\//i.test(source)) errors.push(`${page}: Canonical URL fehlt`);
   for (const property of ['og:title', 'og:description', 'og:url']) {
     if (!source.includes(`property="${property}"`)) errors.push(`${page}: ${property} fehlt`);
@@ -52,6 +66,11 @@ for (const page of pages) {
   if (!/<main(?:\s|>)/i.test(source)) errors.push(`${page}: main-Element fehlt`);
   if (/\son[a-z]+\s*=/i.test(source)) errors.push(`${page}: Inline-Event-Handler gefunden`);
   if (/\beval\s*\(/.test(source)) errors.push(`${page}: eval() gefunden`);
+  if (/tools\/text\/(?:zaehler|bereinigen|gross-klein|sortieren|duplikate|suchen-ersetzen)\/index\.html$/.test(page)) {
+    if (!source.includes('Lokale Verarbeitung:')) errors.push(`${page}: Hinweis zur lokalen Verarbeitung fehlt`);
+    if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
+    if (!source.includes('text-tools.js')) errors.push(`${page}: gemeinsame Text-Tool-Logik fehlt`);
+  }
 
   const references = source.matchAll(/\b(?:href|src)=["']([^"']+)["']/gi);
   for (const match of references) {
@@ -85,6 +104,9 @@ const forbidden = [
   ['Netzwerkrequest per fetch', /\bfetch\s*\(/i],
   ['Netzwerkrequest per XHR', /new\s+XMLHttpRequest/i],
   ['WebSocket', /new\s+WebSocket\s*\(/i],
+  ['EventSource', /new\s+EventSource\s*\(/i],
+  ['Beacon', /sendBeacon\s*\(/i],
+  ['Lokale Speicherung', /localStorage|sessionStorage|indexedDB|document\.cookie/i],
   ['Tracking-Muster', /google-analytics|googletagmanager|matomo|plausible\.io|segment\.com/i]
 ];
 for (const [label, pattern] of forbidden) {
@@ -99,9 +121,15 @@ if (!css.includes('prefers-reduced-motion')) errors.push('prefers-reduced-motion
 if (!css.includes(':focus-visible')) errors.push('Sichtbarer Fokuszustand fehlt');
 
 const sitemap = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
-for (const route of ['/', '/tools/text/', '/tools/pdf/', '/datenschutz.html']) {
+const textToolRoutes = ['/tools/text/zaehler/', '/tools/text/bereinigen/', '/tools/text/gross-klein/', '/tools/text/sortieren/', '/tools/text/duplikate/', '/tools/text/suchen-ersetzen/'];
+for (const route of ['/', '/tools/text/', ...textToolRoutes, '/tools/pdf/', '/datenschutz.html']) {
   if (!sitemap.includes(`https://tools.stylepanda.me${route}`)) errors.push(`Sitemap-Eintrag fehlt: ${route}`);
 }
+const textOverview = fs.readFileSync(path.join(root, 'tools/text/index.html'), 'utf8');
+for (const route of textToolRoutes) {
+  if (!textOverview.includes(`href="${route}"`)) errors.push(`Text-Übersicht verlinkt Tool nicht: ${route}`);
+}
+if (textOverview.includes('In Vorbereitung')) errors.push('Text-Übersicht enthält noch einen In-Vorbereitung-Platzhalter');
 
 const privacy = fs.readFileSync(path.join(root, 'datenschutz.html'), 'utf8');
 const privacyMarkers = [

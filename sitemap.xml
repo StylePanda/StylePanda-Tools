@@ -2,6 +2,12 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://tools.stylepanda.me/</loc></url>
   <url><loc>https://tools.stylepanda.me/tools/text/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/text/zaehler/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/text/bereinigen/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/text/gross-klein/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/text/sortieren/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/text/duplikate/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/text/suchen-ersetzen/</loc></url>
   <url><loc>https://tools.stylepanda.me/tools/pdf/</loc></url>
   <url><loc>https://tools.stylepanda.me/datenschutz.html</loc></url>
 </urlset>
