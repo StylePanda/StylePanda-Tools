@@ -117,7 +117,7 @@ equal(core.safeBaseName('../../ böse <datei>.pdf'), '..-..-böse-datei', 'Siche
 equal(core.formatBytes(1024), '1,0 KB', 'Dateigröße');
 
 // Privacy/security audit targets application code, not PDF.js local asset loading.
-const appSource = fs.readFileSync(path.join(__dirname, '../assets/js/pdf-tools-app.mjs'), 'utf8');
+const appSource = fs.readFileSync(path.join(__dirname, '../assets/js/pdf-tools-app.js'), 'utf8');
 const coreSource = fs.readFileSync(path.join(__dirname, '../assets/js/pdf-tools-core.js'), 'utf8');
 const applicationSource = appSource + '\n' + coreSource;
 const forbidden = [/XMLHttpRequest/, /WebSocket/, /EventSource/, /sendBeacon/, /localStorage/, /sessionStorage/, /indexedDB/i, /document\.cookie/, /caches\.(?:open|match)/, /\beval\s*\(/, /new\s+Function\s*\(/, /document\.write/, /\.innerHTML\s*=/, /location\.(?:search|hash)\s*=/, /history\.(?:pushState|replaceState)/];
@@ -125,7 +125,8 @@ for (const pattern of forbidden) ok(!pattern.test(applicationSource), `Verbotene
 ok(!/\bfetch\s*\(/.test(applicationSource), 'Anwendung überträgt keine Nutzerdokumente per fetch');
 ok(appSource.includes("getDocument(Object.assign({ data"), 'PDF.js erhält lokale Binärdaten statt einer Dokument-URL');
 ok(appSource.includes('isEvalSupported: false'), 'PDF-Auswertung ist deaktiviert');
-ok(appSource.includes("'/assets/vendor/pdfjs/pdf.worker.min.mjs'"), 'Worker ist gleichursprünglich und lokal');
+ok(appSource.includes("'/assets/vendor/pdfjs/pdf.worker.min.js'"), 'Worker ist gleichursprünglich und lokal');
+ok(appSource.includes('showInitializationError'), 'Gemeinsame Initialisierung besitzt eine Fehlergrenze');
 ok(appSource.includes('URL.revokeObjectURL'), 'Objekt-URLs werden widerrufen');
 ok(!/https?:\/\//.test(applicationSource), 'Keine externen Anwendungsendpunkte');
 

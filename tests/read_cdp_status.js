@@ -8,7 +8,7 @@
     const socket = new WebSocket(target.webSocketDebuggerUrl);
     socket.addEventListener('open', () => socket.send(JSON.stringify({
       id: 1, method: 'Runtime.evaluate',
-      params: { expression: "document.querySelector('#result').textContent", returnByValue: true }
+      params: { expression: "(() => { const result = document.querySelector('#result'); return result ? result.textContent : 'MISSING RESULT ELEMENT: ' + document.readyState; })()", returnByValue: true }
     })));
     socket.addEventListener('message', event => {
       const message = JSON.parse(event.data);

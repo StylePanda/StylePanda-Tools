@@ -1,11 +1,11 @@
-import * as pdfjsLib from '/assets/vendor/pdfjs/pdf.min.mjs';
+import * as pdfjsLib from '/assets/vendor/pdfjs/pdf.min.js';
 
 const result = document.querySelector('#result');
 const keepAlive = setInterval(() => {}, 100);
 try {
   result.textContent = 'MODULE';
   if (!window.PDFLib || !window.JSZip || !window.StylePandaPdfCore) throw new Error('Globale Bibliothek fehlt');
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/assets/vendor/pdfjs/pdf.worker.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/assets/vendor/pdfjs/pdf.worker.min.js';
   const source = await PDFLib.PDFDocument.create();
   const page = source.addPage([300, 200]);
   page.drawText('StylePanda PDF Runtime', { x: 30, y: 100, size: 18 });

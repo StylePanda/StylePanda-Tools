@@ -15,7 +15,7 @@ Die folgenden Produktionsbibliotheken liegen fest gepinnt unter `assets/vendor/`
 - Projekt: https://github.com/mozilla/pdf.js
 - Lizenz: Apache License 2.0
 - Lokale Lizenz: `assets/vendor/pdfjs/LICENSE`
-- Verwendete Distribution: `pdf.min.mjs`, `pdf.worker.min.mjs`, Bilddecoder sowie erforderliche lokale CMaps, Standard-Schriften und WASM-Ressourcen einschließlich ihrer mitgelieferten Lizenzdateien.
+- Verwendete Distribution: die unveränderten ESM-Browser-Builds `pdf.min.js`, `pdf.worker.min.js` und `pdf.image_decoders.min.js` (für korrekte JavaScript-MIME-Auslieferung lokal von `.mjs` auf `.js` umbenannt) sowie erforderliche lokale CMaps, Standard-Schriften und WASM-Ressourcen einschließlich ihrer mitgelieferten Lizenzdateien.
 - Zweck: Lokales Laden und Rendern von PDF-Seiten, progressive Miniaturen, Rasterexport, passwortgestütztes Rendering und begrenzte Rekonstruktion eingebetteter Bildobjekte.
 
 ## JSZip 3.10.1

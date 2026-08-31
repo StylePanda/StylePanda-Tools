@@ -86,9 +86,12 @@ for (const page of pages) {
   if (/tools\/pdf\/(?:zusammenfuegen|teilen|extrahieren|loeschen|drehen|anordnen|metadaten|komprimieren|bilder-extrahieren|bilder-zu-pdf|seitengroesse|pdf-zu-bilder)\/index\.html$/.test(page)) {
     if (!source.includes('Lokale Verarbeitung:')) errors.push(`${page}: PDF-Hinweis zur lokalen Verarbeitung fehlt`);
     if (!source.includes('data-pdf-tool=')) errors.push(`${page}: PDF-Tool-Konfiguration fehlt`);
-    for (const asset of ['pdf-lib.min.js', 'jszip.min.js', 'pdf-tools-core.js', 'pdf-tools-app.mjs']) {
+    for (const asset of ['pdf-lib.min.js', 'jszip.min.js', 'pdf-tools-core.js', 'pdf-tools-app.js']) {
       if (!source.includes(asset)) errors.push(`${page}: lokale PDF-Abhängigkeit fehlt: ${asset}`);
     }
+    if (!source.includes('pdf-app-fallback')) errors.push(`${page}: statischer PDF-Fehlerzustand fehlt`);
+    if (/\.\.\/\.\.\/\.\.\/assets\//.test(source)) errors.push(`${page}: verschachtelter relativer Runtime-Pfad gefunden`);
+    if (/\.(?:mjs)(?:["'])/i.test(source)) errors.push(`${page}: .mjs-Runtime-Asset ist nicht MIME-portabel`);
     if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
   }
 
@@ -159,13 +162,13 @@ if (pdfOverview.includes('In Vorbereitung')) errors.push('PDF-Übersicht enthäl
 
 const requiredVendorFiles = [
   'assets/vendor/pdf-lib/pdf-lib.min.js', 'assets/vendor/pdf-lib/LICENSE.md',
-  'assets/vendor/pdfjs/pdf.min.mjs', 'assets/vendor/pdfjs/pdf.worker.min.mjs', 'assets/vendor/pdfjs/LICENSE',
+  'assets/vendor/pdfjs/pdf.min.js', 'assets/vendor/pdfjs/pdf.worker.min.js', 'assets/vendor/pdfjs/pdf.image_decoders.min.js', 'assets/vendor/pdfjs/LICENSE',
   'assets/vendor/jszip/jszip.min.js', 'assets/vendor/jszip/LICENSE.markdown'
 ];
 for (const file of requiredVendorFiles) {
   if (!fs.existsSync(path.join(root, file))) errors.push(`Vendorte Produktionsdatei fehlt: ${file}`);
 }
-const pdfApplication = ['assets/js/pdf-tools-core.js', 'assets/js/pdf-tools-app.mjs'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
+const pdfApplication = ['assets/js/pdf-tools-core.js', 'assets/js/pdf-tools-app.js'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 const unsafePdfPatterns = [
   ['Nutzerdokument-Netzwerkrequest', /\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon/i],
   ['Dokumentpersistenz', /localStorage|sessionStorage|indexedDB|document\.cookie|caches\.(?:open|match)/i],
@@ -180,6 +183,9 @@ for (const [label, pattern] of unsafePdfPatterns) {
 if (!pdfApplication.includes('URL.revokeObjectURL')) errors.push('PDF-Anwendung widerruft Objekt-URLs nicht');
 if (!pdfApplication.includes('isEvalSupported: false')) errors.push('PDF.js-Auswertung ist nicht explizit deaktiviert');
 if (!pdfApplication.includes("getDocument(Object.assign({ data")) errors.push('PDF.js wird nicht explizit mit lokalen Dokumentdaten geladen');
+if (!pdfApplication.includes('showInitializationError')) errors.push('PDF-Anwendung besitzt keine Initialisierungs-Fehlergrenze');
+if (!pdfApplication.includes("document.addEventListener('DOMContentLoaded'")) errors.push('PDF-Anwendung wartet nicht robust auf DOMContentLoaded');
+if (/\.mjs(?:["'])/.test(pdfApplication)) errors.push('PDF-Anwendung referenziert ein nicht MIME-portables .mjs-Runtime-Asset');
 
 const privacy = fs.readFileSync(path.join(root, 'datenschutz.html'), 'utf8');
 const privacyMarkers = [

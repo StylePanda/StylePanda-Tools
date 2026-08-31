@@ -1,10 +1,10 @@
-import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
+import * as pdfjsLib from '/assets/vendor/pdfjs/pdf.min.js';
 
 const core = window.StylePandaPdfCore;
 const PDFLib = window.PDFLib;
 const JSZip = window.JSZip;
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/assets/vendor/pdfjs/pdf.worker.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/assets/vendor/pdfjs/pdf.worker.min.js';
 
 const PDFJS_OPTIONS = {
   cMapUrl: '/assets/vendor/pdfjs/cmaps/', cMapPacked: true,
@@ -75,6 +75,31 @@ function canvasToBlob(canvas, type, quality) {
   return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('canvas')), type, quality));
 }
 
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('image'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function imageThumbnail(blob, maximumWidth = 320, maximumHeight = 220) {
+  let source;
+  let revokeSource = false;
+  if ('createImageBitmap' in window) source = await createImageBitmap(blob);
+  else {
+    source = new Image(); source.src = await blobToDataUrl(blob); await source.decode(); revokeSource = true;
+  }
+  const width = source.width || source.naturalWidth; const height = source.height || source.naturalHeight;
+  const scale = Math.min(1, maximumWidth / width, maximumHeight / height);
+  const canvas = create('canvas'); canvas.width = Math.max(1, Math.round(width * scale)); canvas.height = Math.max(1, Math.round(height * scale));
+  canvas.getContext('2d').drawImage(source, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/png'); canvas.width = 1; canvas.height = 1;
+  if (!revokeSource && source.close) source.close();
+  return { width, height, dataUrl };
+}
+
 function friendlyError(error) {
   const name = String(error && error.name || '');
   const message = String(error && error.message || '');
@@ -94,7 +119,6 @@ class PdfToolApp {
     this.rotations = {};
     this.pageOrder = [];
     this.urls = [];
-    this.imageUrls = [];
     this.generation = 0;
     this.loadingTask = null;
     this.pdfJs = null;
@@ -192,7 +216,7 @@ class PdfToolApp {
     } else if (this.name === 'pdf-to-images') {
       const formatField = field('Bildformat', 'select', 'imageFormat', [['png','PNG'],['jpeg','JPEG'],['webp','WebP']]); const qualityField = field('Qualität für JPEG/WebP (%)', 'range', 'imageQuality');
       this.controls.append(formatField, field('Auflösung', 'select', 'imageScale', [['1','1×'],['1.5','1,5×'],['2','2×'],['3','3×']]), qualityField);
-      const quality = this.getField('imageQuality'); quality.min = '10'; quality.max = '100'; quality.value = '88';
+      const quality = qualityField.querySelector('input'); quality.min = '10'; quality.max = '100'; quality.value = '88';
       const updateQuality = () => { qualityField.hidden = formatField.querySelector('select').value === 'png'; };
       formatField.querySelector('select').addEventListener('change', updateQuality); updateQuality();
       this.controls.append(create('p', 'tool-help', 'Ohne Seitenauswahl werden alle Seiten exportiert. PNG verwendet keine verlustbehaftete Qualitätsstufe.'));
@@ -253,7 +277,6 @@ class PdfToolApp {
       if (!core.isSupportedImage(file)) throw new Error('image');
       const dimensions = await this.imageDimensions(file);
       this.files.push({ id: crypto.randomUUID(), file, width: dimensions.width, height: dimensions.height, url: dimensions.url });
-      this.imageUrls.push(dimensions.url);
       return;
     }
     const bytes = new Uint8Array(await file.arrayBuffer());
@@ -290,13 +313,9 @@ class PdfToolApp {
     }
   }
 
-  imageDimensions(file) {
-    return new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(file); const image = new Image();
-      image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight, url });
-      image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image')); };
-      image.src = url;
-    });
+  async imageDimensions(file) {
+    const thumbnail = await imageThumbnail(file, 160, 120);
+    return { width: thumbnail.width, height: thumbnail.height, url: thumbnail.dataUrl };
   }
 
   renderFileList() {
@@ -461,7 +480,6 @@ class PdfToolApp {
 
   removeFile(index) {
     const entry = this.files[index]; if (!entry) return;
-    if (entry.url) { URL.revokeObjectURL(entry.url); this.imageUrls = this.imageUrls.filter(url => url !== entry.url); }
     this.files.splice(index, 1); this.clearResults(); this.controls.hidden = !this.files.length;
   }
 
@@ -614,11 +632,14 @@ class PdfToolApp {
   }
 
   async decodeImage(entry) {
-    const image = new Image(); image.src = entry.url; await image.decode();
     if (entry.file.type === 'image/jpeg' || /\.jpe?g$/i.test(entry.file.name)) return { type: 'jpeg', bytes: new Uint8Array(await entry.file.arrayBuffer()), width: entry.width, height: entry.height };
     if (entry.file.type === 'image/png' || /\.png$/i.test(entry.file.name)) return { type: 'png', bytes: new Uint8Array(await entry.file.arrayBuffer()), width: entry.width, height: entry.height };
+    let image;
+    if ('createImageBitmap' in window) image = await createImageBitmap(entry.file);
+    else { image = new Image(); image.src = await blobToDataUrl(entry.file); await image.decode(); }
     const canvas = create('canvas'); canvas.width = entry.width; canvas.height = entry.height; canvas.getContext('2d').drawImage(image, 0, 0);
     const blob = await canvasToBlob(canvas, 'image/png'); canvas.width = 1; canvas.height = 1;
+    if (image.close) image.close();
     return { type: 'png', bytes: new Uint8Array(await blob.arrayBuffer()), width: entry.width, height: entry.height };
   }
 
@@ -678,15 +699,15 @@ class PdfToolApp {
   async showImageBatch(outputs, zipName) {
     this.clearResults(); this.resultPanel.hidden = false; this.resultContent.replaceChildren();
     const grid = create('div', 'image-result-grid');
-    outputs.forEach((item, index) => {
-      const url = URL.createObjectURL(item.blob); this.urls.push(url); const card = create('article', 'image-result-card'); const image = create('img'); image.src = url; image.alt = item.page ? 'Extrahiertes Bild von Seite ' + item.page : 'Erzeugtes Seitenbild';
+    for (let index = 0; index < outputs.length; index += 1) {
+      const item = outputs[index]; const url = URL.createObjectURL(item.blob); this.urls.push(url); const card = create('article', 'image-result-card'); const image = create('img'); image.src = (await imageThumbnail(item.blob)).dataUrl; image.alt = item.page ? 'Extrahiertes Bild von Seite ' + item.page : 'Erzeugtes Seitenbild';
       const link = create('a', 'button button-secondary', 'Einzeln herunterladen'); link.href = url; link.download = item.name;
       card.append(image, create('strong', '', item.name), create('span', '', item.width + ' × ' + item.height + ' px · ' + core.formatBytes(item.blob.size)));
       if (this.name === 'extract-images') {
         const choice = checkbox('Für ZIP auswählen', 'image-' + index, true); choice.querySelector('input').dataset.imageIndex = String(index); card.append(choice);
       }
       card.append(link); grid.append(card);
-    });
+    }
     this.resultContent.append(grid);
     if (outputs.length > 1) {
       if (this.name === 'extract-images') {
@@ -722,7 +743,6 @@ class PdfToolApp {
     this.thumbnailRenderTasks.clear();
     if (this.loadingTask) { try { await this.loadingTask.destroy(); } catch (error) { /* already destroyed */ } }
     this.loadingTask = null; this.pdfJs = null; this.bytes = null; this.files = []; this.selected.clear(); this.rotations = {}; this.pageOrder = []; this.password = ''; this.pendingPasswordFile = null;
-    this.imageUrls.forEach(url => URL.revokeObjectURL(url)); this.imageUrls = [];
     const passwordInput = this.getField('password'); if (passwordInput) passwordInput.value = '';
   }
 
@@ -735,4 +755,30 @@ class PdfToolApp {
   }
 }
 
-document.querySelectorAll('[data-pdf-tool]').forEach(root => new PdfToolApp(root));
+function showInitializationError(root, error) {
+  root.replaceChildren();
+  const panel = create('section', 'tool-panel pdf-app-fallback');
+  panel.setAttribute('role', 'alert');
+  panel.append(
+    create('h2', '', 'PDF-Werkzeug nicht verfügbar'),
+    create('p', '', 'Das PDF-Werkzeug konnte nicht geladen werden. Bitte lade die Seite neu. Falls der Fehler weiterhin auftritt, prüfe die Browser-Konsole.')
+  );
+  root.append(panel);
+  console.error('StylePanda PDF Tools: Initialisierung fehlgeschlagen.', error);
+}
+
+function initializePdfTools() {
+  document.querySelectorAll('[data-pdf-tool]').forEach(root => {
+    try {
+      if (!core || !PDFLib || !JSZip) throw new Error('Lokale PDF-Komponente fehlt.');
+      root.replaceChildren();
+      new PdfToolApp(root);
+      root.dataset.pdfToolInitialized = 'true';
+    } catch (error) {
+      showInitializationError(root, error);
+    }
+  });
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializePdfTools, { once: true });
+else initializePdfTools();
