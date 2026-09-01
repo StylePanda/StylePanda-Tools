@@ -26,4 +26,12 @@ Die folgenden Produktionsbibliotheken liegen fest gepinnt unter `assets/vendor/`
 - Verwendete Datei: `assets/vendor/jszip/jszip.min.js`
 - Zweck: Mehrere lokal erzeugte PDFs oder Bilder im Browser als ZIP verpacken.
 
-Alle drei gewählten Lizenzen erlauben die lokale Nutzung und Weitergabe der vendorten Browser-Distributionen unter Beibehaltung der Lizenzhinweise.
+## qrcode-generator 1.4.4
+
+- Projekt: https://github.com/kazuhikoarase/qrcode-generator
+- Lizenz: MIT
+- Lokale Lizenz: `assets/vendor/qrcode-generator/LICENSE`
+- Verwendete Dateien: `assets/vendor/qrcode-generator/qrcode.js` und `qrcode_UTF8.js`
+- Zweck: Standardskonforme QR-Matrizen einschließlich UTF-8-Inhalten vollständig lokal erzeugen; die Anwendung zeichnet die Matrix anschließend selbst auf ein Canvas und exportiert PNG.
+
+Alle vier gewählten Lizenzen erlauben die lokale Nutzung und Weitergabe der vendorten Browser-Distributionen unter Beibehaltung der Lizenzhinweise.

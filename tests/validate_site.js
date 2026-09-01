@@ -38,7 +38,19 @@ const pages = [
   'tools/bild/metadaten-anzeigen/index.html',
   'tools/bild/metadaten-entfernen/index.html',
   'tools/bild/farbe-auswaehlen/index.html',
-  'tools/bild/favicon-erstellen/index.html'
+  'tools/bild/favicon-erstellen/index.html',
+  'tools/entwickler/index.html',
+  'tools/entwickler/json-formatieren/index.html',
+  'tools/entwickler/json-minimieren/index.html',
+  'tools/entwickler/base64/index.html',
+  'tools/entwickler/url-encoder-decoder/index.html',
+  'tools/entwickler/html-entities/index.html',
+  'tools/entwickler/hash-generator/index.html',
+  'tools/entwickler/uuid-generator/index.html',
+  'tools/entwickler/unix-timestamp/index.html',
+  'tools/entwickler/regex-tester/index.html',
+  'tools/entwickler/jwt-decoder/index.html',
+  'tools/entwickler/qr-code-generator/index.html'
 ];
 const allowedHosts = new Set([
   'stylepanda.me',
@@ -109,6 +121,12 @@ for (const page of pages) {
     if (!source.includes('Lokale Verarbeitung:')) errors.push(`${page}: Bild-Hinweis zur lokalen Verarbeitung fehlt`);
     if (!source.includes('data-image-tool=')) errors.push(`${page}: Bild-Tool-Konfiguration fehlt`);
     for (const asset of ['image-tools-core.js', 'image-tools-app.js']) if (!source.includes(asset)) errors.push(`${page}: lokale Bild-Abhängigkeit fehlt: ${asset}`);
+    if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
+  }
+  if (/tools\/entwickler\/(?:json-formatieren|json-minimieren|base64|url-encoder-decoder|html-entities|hash-generator|uuid-generator|unix-timestamp|regex-tester|jwt-decoder|qr-code-generator)\/index\.html$/.test(page)) {
+    if (!source.includes('lokal') && !source.includes('Lokale Verarbeitung:')) errors.push(`${page}: Entwickler-Hinweis zur lokalen Verarbeitung fehlt`);
+    if (!source.includes('data-developer-tool=')) errors.push(`${page}: Entwickler-Tool-Konfiguration fehlt`);
+    for (const asset of ['developer-tools-core.js', 'developer-tools-app.js']) if (!source.includes(asset)) errors.push(`${page}: lokale Entwickler-Abhängigkeit fehlt: ${asset}`);
     if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
   }
 
@@ -184,6 +202,27 @@ for (const route of ['/tools/bild/', ...imageToolRoutes]) {
 }
 if (!fs.readFileSync(path.join(root, 'index.html'), 'utf8').includes('href="/tools/bild/"')) errors.push('Startseite verlinkt Bild Tools nicht');
 
+const developerToolRoutes = ['/tools/entwickler/json-formatieren/', '/tools/entwickler/json-minimieren/', '/tools/entwickler/base64/', '/tools/entwickler/url-encoder-decoder/', '/tools/entwickler/html-entities/', '/tools/entwickler/hash-generator/', '/tools/entwickler/uuid-generator/', '/tools/entwickler/unix-timestamp/', '/tools/entwickler/regex-tester/', '/tools/entwickler/jwt-decoder/', '/tools/entwickler/qr-code-generator/'];
+const developerOverview = fs.readFileSync(path.join(root, 'tools/entwickler/index.html'), 'utf8');
+for (const route of ['/tools/entwickler/', ...developerToolRoutes]) {
+  if (!sitemap.includes(`https://tools.stylepanda.me${route}`)) errors.push(`Sitemap-Eintrag fehlt: ${route}`);
+  if (route !== '/tools/entwickler/' && !developerOverview.includes(`href="${route}"`)) errors.push(`Entwickler-Übersicht verlinkt Tool nicht: ${route}`);
+}
+if (!fs.readFileSync(path.join(root, 'index.html'), 'utf8').includes('href="/tools/entwickler/"')) errors.push('Startseite verlinkt Entwickler Tools nicht');
+
+const developerApplication = ['assets/js/developer-tools-core.js', 'assets/js/developer-tools-app.js'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
+const unsafeDeveloperPatterns = [
+  ['Inhalts-Netzwerkrequest', /\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|FormData/i],
+  ['Persistenz', /localStorage|sessionStorage|indexedDB|document\.cookie|caches\.(?:open|match)/i],
+  ['Unsichere dynamische Ausgabe', /\.innerHTML\s*=|document\.write/i],
+  ['Dynamische Codeausführung', /\beval\s*\(|new\s+Function\s*\(/i],
+  ['Externer Endpunkt', /https?:\/\//i]
+];
+for (const [label, pattern] of unsafeDeveloperPatterns) if (pattern.test(developerApplication)) errors.push(`Entwickler-Anwendung enthält verbotenes Muster: ${label}`);
+if (!developerApplication.includes('getRandomValues')) errors.push('UUID-Fallback nutzt keine kryptografische Browser-Zufälligkeit');
+if (developerApplication.includes('Math.random')) errors.push('Entwickler-Anwendung nutzt Math.random');
+if (!developerApplication.includes('canvas.toBlob')) errors.push('QR-Generator exportiert nicht lokal per Canvas');
+
 const imageApplication = ['assets/js/image-tools-core.js', 'assets/js/image-tools-app.js'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 const unsafeImagePatterns = [
   ['Bildinhalts-Netzwerkrequest', /\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|FormData/i],
@@ -199,7 +238,8 @@ if (!imageApplication.includes('canvas.toBlob')) errors.push('Bild-Anwendung kod
 const requiredVendorFiles = [
   'assets/vendor/pdf-lib/pdf-lib.min.js', 'assets/vendor/pdf-lib/LICENSE.md',
   'assets/vendor/pdfjs/pdf.min.js', 'assets/vendor/pdfjs/pdf.worker.min.js', 'assets/vendor/pdfjs/pdf.image_decoders.min.js', 'assets/vendor/pdfjs/LICENSE',
-  'assets/vendor/jszip/jszip.min.js', 'assets/vendor/jszip/LICENSE.markdown'
+  'assets/vendor/jszip/jszip.min.js', 'assets/vendor/jszip/LICENSE.markdown',
+  'assets/vendor/qrcode-generator/qrcode.js', 'assets/vendor/qrcode-generator/qrcode_UTF8.js', 'assets/vendor/qrcode-generator/LICENSE'
 ];
 for (const file of requiredVendorFiles) {
   if (!fs.existsSync(path.join(root, file))) errors.push(`Vendorte Produktionsdatei fehlt: ${file}`);
