@@ -27,7 +27,18 @@ const pages = [
   'tools/pdf/bilder-extrahieren/index.html',
   'tools/pdf/bilder-zu-pdf/index.html',
   'tools/pdf/seitengroesse/index.html',
-  'tools/pdf/pdf-zu-bilder/index.html'
+  'tools/pdf/pdf-zu-bilder/index.html',
+  'tools/bild/index.html',
+  'tools/bild/komprimieren/index.html',
+  'tools/bild/groesse-aendern/index.html',
+  'tools/bild/zuschneiden/index.html',
+  'tools/bild/drehen-spiegeln/index.html',
+  'tools/bild/format-konvertieren/index.html',
+  'tools/bild/mehrere-konvertieren/index.html',
+  'tools/bild/metadaten-anzeigen/index.html',
+  'tools/bild/metadaten-entfernen/index.html',
+  'tools/bild/farbe-auswaehlen/index.html',
+  'tools/bild/favicon-erstellen/index.html'
 ];
 const allowedHosts = new Set([
   'stylepanda.me',
@@ -92,6 +103,12 @@ for (const page of pages) {
     if (!source.includes('pdf-app-fallback')) errors.push(`${page}: statischer PDF-Fehlerzustand fehlt`);
     if (/\.\.\/\.\.\/\.\.\/assets\//.test(source)) errors.push(`${page}: verschachtelter relativer Runtime-Pfad gefunden`);
     if (/\.(?:mjs)(?:["'])/i.test(source)) errors.push(`${page}: .mjs-Runtime-Asset ist nicht MIME-portabel`);
+    if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
+  }
+  if (/tools\/bild\/(?:komprimieren|groesse-aendern|zuschneiden|drehen-spiegeln|format-konvertieren|mehrere-konvertieren|metadaten-anzeigen|metadaten-entfernen|farbe-auswaehlen|favicon-erstellen)\/index\.html$/.test(page)) {
+    if (!source.includes('Lokale Verarbeitung:')) errors.push(`${page}: Bild-Hinweis zur lokalen Verarbeitung fehlt`);
+    if (!source.includes('data-image-tool=')) errors.push(`${page}: Bild-Tool-Konfiguration fehlt`);
+    for (const asset of ['image-tools-core.js', 'image-tools-app.js']) if (!source.includes(asset)) errors.push(`${page}: lokale Bild-Abhängigkeit fehlt: ${asset}`);
     if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
   }
 
@@ -159,6 +176,25 @@ for (const route of pdfToolRoutes) {
   if (!pdfOverview.includes(`href="${route}"`)) errors.push(`PDF-Übersicht verlinkt Tool nicht: ${route}`);
 }
 if (pdfOverview.includes('In Vorbereitung')) errors.push('PDF-Übersicht enthält noch einen In-Vorbereitung-Platzhalter');
+const imageToolRoutes = ['/tools/bild/komprimieren/', '/tools/bild/groesse-aendern/', '/tools/bild/zuschneiden/', '/tools/bild/drehen-spiegeln/', '/tools/bild/format-konvertieren/', '/tools/bild/mehrere-konvertieren/', '/tools/bild/metadaten-anzeigen/', '/tools/bild/metadaten-entfernen/', '/tools/bild/farbe-auswaehlen/', '/tools/bild/favicon-erstellen/'];
+const imageOverview = fs.readFileSync(path.join(root, 'tools/bild/index.html'), 'utf8');
+for (const route of ['/tools/bild/', ...imageToolRoutes]) {
+  if (!sitemap.includes(`https://tools.stylepanda.me${route}`)) errors.push(`Sitemap-Eintrag fehlt: ${route}`);
+  if (route !== '/tools/bild/' && !imageOverview.includes(`href="${route}"`)) errors.push(`Bild-Übersicht verlinkt Tool nicht: ${route}`);
+}
+if (!fs.readFileSync(path.join(root, 'index.html'), 'utf8').includes('href="/tools/bild/"')) errors.push('Startseite verlinkt Bild Tools nicht');
+
+const imageApplication = ['assets/js/image-tools-core.js', 'assets/js/image-tools-app.js'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
+const unsafeImagePatterns = [
+  ['Bildinhalts-Netzwerkrequest', /\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|FormData/i],
+  ['Bildpersistenz', /localStorage|sessionStorage|indexedDB|document\.cookie|caches\.(?:open|match)/i],
+  ['Unsichere dynamische Ausgabe', /\.innerHTML\s*=|document\.write/i],
+  ['Dynamische Codeausführung', /\beval\s*\(|new\s+Function\s*\(/i],
+  ['Externer Endpunkt', /https?:\/\//i]
+];
+for (const [label, pattern] of unsafeImagePatterns) if (pattern.test(imageApplication)) errors.push(`Bild-Anwendung enthält verbotenes Muster: ${label}`);
+if (!imageApplication.includes('URL.revokeObjectURL')) errors.push('Bild-Anwendung widerruft Objekt-URLs nicht');
+if (!imageApplication.includes('canvas.toBlob')) errors.push('Bild-Anwendung kodiert Ergebnisse nicht lokal per Canvas');
 
 const requiredVendorFiles = [
   'assets/vendor/pdf-lib/pdf-lib.min.js', 'assets/vendor/pdf-lib/LICENSE.md',
