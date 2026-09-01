@@ -48,4 +48,10 @@ const productionServer = fs.readFileSync(path.join(__dirname, 'production_like_s
 ok(productionServer.includes("img-src 'self' data:"), 'Produktionsnahe enge Bild-CSP bleibt aktiv');
 ok(!productionServer.includes("img-src 'self' data: blob:"), 'Fix benötigt keine zusätzliche blob:-CSP-Freigabe');
 
+const css = fs.readFileSync(path.join(__dirname, '../assets/css/main.css'), 'utf8');
+ok(app.includes('class="image-result-layout"'), 'Bild-Ergebnis nutzt eine eigene Shared-Layoutklasse');
+ok(css.includes('.image-result-layout { display: grid;'), 'Shared-Ergebnis besitzt ein explizites Grid');
+ok(css.includes('grid-template-columns: minmax(260px, .9fr) minmax(390px, 1.2fr) minmax(180px, auto)'), 'Desktop verteilt Vorschau, Metriken und Download bewusst');
+ok(css.includes('.image-result-layout .stat-card strong'), 'Metrik-Umbruch ist lokal auf Bild-Ergebnisse begrenzt');
+
 console.log(`IMAGE-TOOLS-TESTS ERFOLGREICH: ${assertions} Prüfungen`);
