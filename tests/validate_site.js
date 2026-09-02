@@ -57,7 +57,16 @@ const pages = [
   'tools/sicherheit/zufallsstring-generator/index.html',
   'tools/sicherheit/text-verschluesseln-entschluesseln/index.html',
   'tools/sicherheit/datei-verschluesseln-entschluesseln/index.html',
-  'tools/sicherheit/datei-pruefsumme/index.html'
+  'tools/sicherheit/datei-pruefsumme/index.html',
+  'tools/rechner/index.html',
+  'tools/rechner/prozentrechner/index.html',
+  'tools/rechner/dreisatzrechner/index.html',
+  'tools/rechner/rabattrechner/index.html',
+  'tools/rechner/mehrwertsteuerrechner/index.html',
+  'tools/rechner/einheitenumrechner/index.html',
+  'tools/rechner/datengroessenrechner/index.html',
+  'tools/rechner/temperaturumrechner/index.html',
+  'tools/rechner/geschwindigkeitsumrechner/index.html'
 ];
 const allowedHosts = new Set([
   'stylepanda.me',
@@ -140,6 +149,12 @@ for (const page of pages) {
     if (!source.includes('Lokale Verarbeitung:')) errors.push(`${page}: Security-Hinweis zur lokalen Verarbeitung fehlt`);
     if (!source.includes('data-security-tool=')) errors.push(`${page}: Security-Tool-Konfiguration fehlt`);
     for (const asset of ['security-tools-core.js', 'security-tools-app.js']) if (!source.includes(asset)) errors.push(`${page}: lokale Security-Abhängigkeit fehlt: ${asset}`);
+    if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
+  }
+  if (/tools\/rechner\/(?:prozentrechner|dreisatzrechner|rabattrechner|mehrwertsteuerrechner|einheitenumrechner|datengroessenrechner|temperaturumrechner|geschwindigkeitsumrechner)\/index\.html$/.test(page)) {
+    if (!source.includes('Lokale Verarbeitung:')) errors.push(`${page}: Rechner-Hinweis zur lokalen Verarbeitung fehlt`);
+    if (!source.includes('data-calculator-tool=')) errors.push(`${page}: Rechner-Konfiguration fehlt`);
+    for (const asset of ['calculator-tools-core.js', 'calculator-tools-app.js']) if (!source.includes(asset)) errors.push(`${page}: lokale Rechner-Abhängigkeit fehlt: ${asset}`);
     if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
   }
 
@@ -243,6 +258,25 @@ const unsafeSecurityPatterns = [
 for (const [label, pattern] of unsafeSecurityPatterns) if (pattern.test(securityApplication)) errors.push(`Security-Anwendung enthält verbotenes Muster: ${label}`);
 for (const marker of ['getRandomValues', 'AES-GCM', 'PBKDF2', 'SHA-256', 'URL.revokeObjectURL']) if (!securityApplication.includes(marker)) errors.push(`Security-Anwendung: erforderlicher Marker fehlt: ${marker}`);
 if (securityApplication.includes('Math.random')) errors.push('Security-Anwendung nutzt Math.random');
+
+const calculatorToolRoutes = ['/tools/rechner/prozentrechner/', '/tools/rechner/dreisatzrechner/', '/tools/rechner/rabattrechner/', '/tools/rechner/mehrwertsteuerrechner/', '/tools/rechner/einheitenumrechner/', '/tools/rechner/datengroessenrechner/', '/tools/rechner/temperaturumrechner/', '/tools/rechner/geschwindigkeitsumrechner/'];
+const calculatorOverview = fs.readFileSync(path.join(root, 'tools/rechner/index.html'), 'utf8');
+for (const route of ['/tools/rechner/', ...calculatorToolRoutes]) {
+  if (!sitemap.includes(`https://tools.stylepanda.me${route}`)) errors.push(`Sitemap-Eintrag fehlt: ${route}`);
+  if (route !== '/tools/rechner/' && !calculatorOverview.includes(`href="${route}"`)) errors.push(`Rechner-Übersicht verlinkt Tool nicht: ${route}`);
+}
+if (!fs.readFileSync(path.join(root, 'index.html'), 'utf8').includes('href="/tools/rechner/"')) errors.push('Startseite verlinkt Rechner nicht');
+
+const calculatorApplication = ['assets/js/calculator-tools-core.js', 'assets/js/calculator-tools-app.js'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
+const unsafeCalculatorPatterns = [
+  ['Netzwerkrequest', /\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|FormData/i],
+  ['Persistenz', /localStorage|sessionStorage|indexedDB|document\.cookie|caches\.(?:open|match)/i],
+  ['Unsichere dynamische Ausgabe', /\.innerHTML\s*=|document\.write/i],
+  ['Dynamische Codeausführung', /\beval\s*\(|new\s+Function\s*\(/i],
+  ['Externer Endpunkt', /https?:\/\//i],
+  ['Eingabe-Logging', /console\.(?:log|debug|info|warn|error)/i]
+];
+for (const [label, pattern] of unsafeCalculatorPatterns) if (pattern.test(calculatorApplication)) errors.push(`Rechner-Anwendung enthält verbotenes Muster: ${label}`);
 
 const developerApplication = ['assets/js/developer-tools-core.js', 'assets/js/developer-tools-app.js'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 const unsafeDeveloperPatterns = [
