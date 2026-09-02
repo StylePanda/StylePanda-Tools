@@ -1,16 +1,18 @@
 # StylePanda Tools
 
-StylePanda Tools ist eine kostenlose, werbefreie und nichtkommerzielle Sammlung von Browser-Werkzeugen. Verfügbar sind sechs Text Tools, zwölf PDF Tools, zehn Bild Tools und elf Entwickler Tools.
+StylePanda Tools ist eine kostenlose, werbefreie und nichtkommerzielle Sammlung von Browser-Werkzeugen. Verfügbar sind sechs Text Tools, zwölf PDF Tools, zehn Bild Tools, elf Entwickler Tools und sechs Security Tools.
 
 ## Privacy-First Architektur
 
-Die Website verarbeitet Texte, PDFs, Bilder und Inhalte der Entwickler Tools ausschließlich lokal im Browser. Nutzereingaben und ausgewählte Dateien dürfen nicht zur Verarbeitung an den StylePanda-Server oder externe Dienste übertragen werden.
+Die Website verarbeitet Texte, PDFs, Bilder, Inhalte der Entwickler Tools sowie Passwörter, Klartexte, verschlüsselte Daten und Dateien der Security Tools ausschließlich lokal im Browser. Nutzereingaben und ausgewählte Dateien dürfen nicht zur Verarbeitung an den StylePanda-Server oder externe Dienste übertragen werden.
 
 Die Text Tools verarbeiten Eingaben ausschließlich im Arbeitsspeicher des Browsers. Es gibt keine Upload-Funktionen, Benutzerkonten, Datenbank, API, serverseitige Inhaltsverarbeitung, Werbung, Analyse oder Telemetrie.
 
 Auch PDFs und Bilder werden ausschließlich im Browser-Arbeitsspeicher verarbeitet. Die lokal vendorten Open-Source-Bibliotheken, Versionen, Einsatzzwecke und Lizenzen sind in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) dokumentiert.
 
 Die reproduzierbare Offline- und Browser-Validierung der Bild Tools ist in [tests/IMAGE_TOOLS_TESTING.md](tests/IMAGE_TOOLS_TESTING.md) beschrieben. Die Entwickler Tools werden mit `tests/developer_tools.test.js` und `tests/developer_pages_browser_test.js` einschließlich einer Netzwerksperre nach Seitenladung geprüft.
+
+Die Kategorie **Sicherheit** enthält genau sechs Werkzeuge: Passwortgenerator, Passwortstärke prüfen, Zufallsstring-Generator, Text verschlüsseln & entschlüsseln, Datei verschlüsseln & entschlüsseln sowie Datei-Prüfsumme berechnen & vergleichen. AES-256-GCM, PBKDF2-SHA-256 und SHA-2 werden nativ über Web Crypto ausgeführt; es gibt keine Uploads, externen Sicherheitsdienste oder Persistenz sensibler Werte. Tests liegen in `tests/security_tools.test.js` und `tests/security_pages_browser_test.js`.
 
 ## Technischer Aufbau
 

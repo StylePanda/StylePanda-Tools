@@ -50,7 +50,14 @@ const pages = [
   'tools/entwickler/unix-timestamp/index.html',
   'tools/entwickler/regex-tester/index.html',
   'tools/entwickler/jwt-decoder/index.html',
-  'tools/entwickler/qr-code-generator/index.html'
+  'tools/entwickler/qr-code-generator/index.html',
+  'tools/sicherheit/index.html',
+  'tools/sicherheit/passwortgenerator/index.html',
+  'tools/sicherheit/passwortstaerke-pruefen/index.html',
+  'tools/sicherheit/zufallsstring-generator/index.html',
+  'tools/sicherheit/text-verschluesseln-entschluesseln/index.html',
+  'tools/sicherheit/datei-verschluesseln-entschluesseln/index.html',
+  'tools/sicherheit/datei-pruefsumme/index.html'
 ];
 const allowedHosts = new Set([
   'stylepanda.me',
@@ -127,6 +134,12 @@ for (const page of pages) {
     if (!source.includes('lokal') && !source.includes('Lokale Verarbeitung:')) errors.push(`${page}: Entwickler-Hinweis zur lokalen Verarbeitung fehlt`);
     if (!source.includes('data-developer-tool=')) errors.push(`${page}: Entwickler-Tool-Konfiguration fehlt`);
     for (const asset of ['developer-tools-core.js', 'developer-tools-app.js']) if (!source.includes(asset)) errors.push(`${page}: lokale Entwickler-Abhängigkeit fehlt: ${asset}`);
+    if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
+  }
+  if (/tools\/sicherheit\/(?:passwortgenerator|passwortstaerke-pruefen|zufallsstring-generator|text-verschluesseln-entschluesseln|datei-verschluesseln-entschluesseln|datei-pruefsumme)\/index\.html$/.test(page)) {
+    if (!source.includes('Lokale Verarbeitung:')) errors.push(`${page}: Security-Hinweis zur lokalen Verarbeitung fehlt`);
+    if (!source.includes('data-security-tool=')) errors.push(`${page}: Security-Tool-Konfiguration fehlt`);
+    for (const asset of ['security-tools-core.js', 'security-tools-app.js']) if (!source.includes(asset)) errors.push(`${page}: lokale Security-Abhängigkeit fehlt: ${asset}`);
     if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
   }
 
@@ -209,6 +222,27 @@ for (const route of ['/tools/entwickler/', ...developerToolRoutes]) {
   if (route !== '/tools/entwickler/' && !developerOverview.includes(`href="${route}"`)) errors.push(`Entwickler-Übersicht verlinkt Tool nicht: ${route}`);
 }
 if (!fs.readFileSync(path.join(root, 'index.html'), 'utf8').includes('href="/tools/entwickler/"')) errors.push('Startseite verlinkt Entwickler Tools nicht');
+
+const securityToolRoutes = ['/tools/sicherheit/passwortgenerator/', '/tools/sicherheit/passwortstaerke-pruefen/', '/tools/sicherheit/zufallsstring-generator/', '/tools/sicherheit/text-verschluesseln-entschluesseln/', '/tools/sicherheit/datei-verschluesseln-entschluesseln/', '/tools/sicherheit/datei-pruefsumme/'];
+const securityOverview = fs.readFileSync(path.join(root, 'tools/sicherheit/index.html'), 'utf8');
+for (const route of ['/tools/sicherheit/', ...securityToolRoutes]) {
+  if (!sitemap.includes(`https://tools.stylepanda.me${route}`)) errors.push(`Sitemap-Eintrag fehlt: ${route}`);
+  if (route !== '/tools/sicherheit/' && !securityOverview.includes(`href="${route}"`)) errors.push(`Sicherheits-Übersicht verlinkt Tool nicht: ${route}`);
+}
+if (!fs.readFileSync(path.join(root, 'index.html'), 'utf8').includes('href="/tools/sicherheit/"')) errors.push('Startseite verlinkt Sicherheit nicht');
+
+const securityApplication = ['assets/js/security-tools-core.js', 'assets/js/security-tools-app.js'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
+const unsafeSecurityPatterns = [
+  ['Inhalts-Netzwerkrequest', /\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|FormData/i],
+  ['Persistenz', /localStorage|sessionStorage|indexedDB|document\.cookie|caches\.(?:open|match)/i],
+  ['Unsichere dynamische Ausgabe', /\.innerHTML\s*=|document\.write/i],
+  ['Dynamische Codeausführung', /\beval\s*\(|new\s+Function\s*\(/i],
+  ['Externer Endpunkt', /https?:\/\//i],
+  ['Secret-Logging', /console\.(?:log|debug|info|warn|error)/i]
+];
+for (const [label, pattern] of unsafeSecurityPatterns) if (pattern.test(securityApplication)) errors.push(`Security-Anwendung enthält verbotenes Muster: ${label}`);
+for (const marker of ['getRandomValues', 'AES-GCM', 'PBKDF2', 'SHA-256', 'URL.revokeObjectURL']) if (!securityApplication.includes(marker)) errors.push(`Security-Anwendung: erforderlicher Marker fehlt: ${marker}`);
+if (securityApplication.includes('Math.random')) errors.push('Security-Anwendung nutzt Math.random');
 
 const developerApplication = ['assets/js/developer-tools-core.js', 'assets/js/developer-tools-app.js'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 const unsafeDeveloperPatterns = [

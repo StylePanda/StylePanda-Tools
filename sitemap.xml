@@ -44,5 +44,12 @@
   <url><loc>https://tools.stylepanda.me/tools/entwickler/regex-tester/</loc></url>
   <url><loc>https://tools.stylepanda.me/tools/entwickler/jwt-decoder/</loc></url>
   <url><loc>https://tools.stylepanda.me/tools/entwickler/qr-code-generator/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/sicherheit/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/sicherheit/passwortgenerator/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/sicherheit/passwortstaerke-pruefen/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/sicherheit/zufallsstring-generator/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/sicherheit/text-verschluesseln-entschluesseln/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/sicherheit/datei-verschluesseln-entschluesseln/</loc></url>
+  <url><loc>https://tools.stylepanda.me/tools/sicherheit/datei-pruefsumme/</loc></url>
   <url><loc>https://tools.stylepanda.me/datenschutz.html</loc></url>
 </urlset>
