@@ -1,6 +1,6 @@
 # StylePanda Tools
 
-StylePanda Tools ist eine kostenlose, werbefreie und nichtkommerzielle Sammlung von Browser-Werkzeugen. Verfügbar sind sechs Text Tools, zwölf PDF Tools, zehn Bild Tools, elf Entwickler Tools, sechs Security Tools und acht Rechner.
+StylePanda Tools ist eine kostenlose, werbefreie und nichtkommerzielle Sammlung von Browser-Werkzeugen. Verfügbar sind sechs Text Tools, zwölf PDF Tools, zehn Bild Tools, elf Entwickler Tools, sechs Security Tools, acht Rechner und sechs Werkzeuge für Datum & Zeit.
 
 ## Privacy-First Architektur
 
@@ -15,6 +15,8 @@ Die reproduzierbare Offline- und Browser-Validierung der Bild Tools ist in [test
 Die Kategorie **Sicherheit** enthält genau sechs Werkzeuge: Passwortgenerator, Passwortstärke prüfen, Zufallsstring-Generator, Text verschlüsseln & entschlüsseln, Datei verschlüsseln & entschlüsseln sowie Datei-Prüfsumme berechnen & vergleichen. AES-256-GCM, PBKDF2-SHA-256 und SHA-2 werden nativ über Web Crypto ausgeführt; es gibt keine Uploads, externen Sicherheitsdienste oder Persistenz sensibler Werte. Tests liegen in `tests/security_tools.test.js` und `tests/security_pages_browser_test.js`.
 
 Die Kategorie **Rechner** enthält genau acht Werkzeuge: Prozentrechner, Dreisatzrechner, Rabattrechner, Mehrwertsteuerrechner, Einheitenumrechner, Datengrößenrechner, Temperaturumrechner und Geschwindigkeitsumrechner. Alle Formeln und festen Umrechnungsfaktoren liegen in lokalem JavaScript; es werden weder Eingaben noch Ergebnisse an einen Server oder externen Dienst übertragen. Tests liegen in `tests/calculator_tools.test.js` und `tests/calculator_pages_browser_test.js`.
+
+Die Kategorie **Datum & Zeit** enthält genau sechs Werkzeuge: Datumsdifferenz berechnen, Tage zwischen zwei Daten, Datum addieren & subtrahieren, Altersrechner, Kalenderwochen-Rechner und Zeitdauer berechnen. Gemeinsame Civil-Date-Helfer vermeiden Zeitzonenfehler bei reinen Kalenderdaten; alle Berechnungen erfolgen lokal. Der vorhandene Unix-Timestamp-Konverter bleibt unverändert in der Kategorie Entwickler. Tests liegen in `tests/datetime_tools.test.js` und `tests/datetime_pages_browser_test.js`.
 
 ## Technischer Aufbau
 

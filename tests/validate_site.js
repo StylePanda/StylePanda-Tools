@@ -66,7 +66,14 @@ const pages = [
   'tools/rechner/einheitenumrechner/index.html',
   'tools/rechner/datengroessenrechner/index.html',
   'tools/rechner/temperaturumrechner/index.html',
-  'tools/rechner/geschwindigkeitsumrechner/index.html'
+  'tools/rechner/geschwindigkeitsumrechner/index.html',
+  'tools/datum-zeit/index.html',
+  'tools/datum-zeit/datumsdifferenz/index.html',
+  'tools/datum-zeit/tage-zwischen-daten/index.html',
+  'tools/datum-zeit/datum-addieren-subtrahieren/index.html',
+  'tools/datum-zeit/altersrechner/index.html',
+  'tools/datum-zeit/kalenderwochen-rechner/index.html',
+  'tools/datum-zeit/zeitdauer-berechnen/index.html'
 ];
 const allowedHosts = new Set([
   'stylepanda.me',
@@ -155,6 +162,12 @@ for (const page of pages) {
     if (!source.includes('Lokale Verarbeitung:')) errors.push(`${page}: Rechner-Hinweis zur lokalen Verarbeitung fehlt`);
     if (!source.includes('data-calculator-tool=')) errors.push(`${page}: Rechner-Konfiguration fehlt`);
     for (const asset of ['calculator-tools-core.js', 'calculator-tools-app.js']) if (!source.includes(asset)) errors.push(`${page}: lokale Rechner-Abhängigkeit fehlt: ${asset}`);
+    if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
+  }
+  if (/tools\/datum-zeit\/(?:datumsdifferenz|tage-zwischen-daten|datum-addieren-subtrahieren|altersrechner|kalenderwochen-rechner|zeitdauer-berechnen)\/index\.html$/.test(page)) {
+    if (!source.includes('Lokale Verarbeitung:')) errors.push(`${page}: Datum-&-Zeit-Hinweis zur lokalen Verarbeitung fehlt`);
+    if (!source.includes('data-datetime-tool=')) errors.push(`${page}: Datum-&-Zeit-Konfiguration fehlt`);
+    for (const asset of ['datetime-tools-core.js', 'datetime-tools-app.js']) if (!source.includes(asset)) errors.push(`${page}: lokale Datum-&-Zeit-Abhängigkeit fehlt: ${asset}`);
     if (/<form[^>]+action=/i.test(source)) errors.push(`${page}: Formularziel gefunden`);
   }
 
@@ -277,6 +290,31 @@ const unsafeCalculatorPatterns = [
   ['Eingabe-Logging', /console\.(?:log|debug|info|warn|error)/i]
 ];
 for (const [label, pattern] of unsafeCalculatorPatterns) if (pattern.test(calculatorApplication)) errors.push(`Rechner-Anwendung enthält verbotenes Muster: ${label}`);
+
+const datetimeToolRoutes = ['/tools/datum-zeit/datumsdifferenz/', '/tools/datum-zeit/tage-zwischen-daten/', '/tools/datum-zeit/datum-addieren-subtrahieren/', '/tools/datum-zeit/altersrechner/', '/tools/datum-zeit/kalenderwochen-rechner/', '/tools/datum-zeit/zeitdauer-berechnen/'];
+const datetimeOverview = fs.readFileSync(path.join(root, 'tools/datum-zeit/index.html'), 'utf8');
+for (const route of ['/tools/datum-zeit/', ...datetimeToolRoutes]) {
+  if (!sitemap.includes(`https://tools.stylepanda.me${route}`)) errors.push(`Sitemap-Eintrag fehlt: ${route}`);
+  if (route !== '/tools/datum-zeit/' && !datetimeOverview.includes(`href="${route}"`)) errors.push(`Datum-&-Zeit-Übersicht verlinkt Tool nicht: ${route}`);
+}
+const datetimeOverviewToolLinks = [...datetimeOverview.matchAll(/href="(\/tools\/datum-zeit\/[^"#]+\/)"/g)].map((match) => match[1]).filter((route) => route !== '/tools/datum-zeit/');
+if (new Set(datetimeOverviewToolLinks).size !== 6) errors.push('Datum-&-Zeit-Übersicht enthält nicht genau sechs unterschiedliche Werkzeuglinks');
+if (/unix[- ]timestamp/i.test(datetimeOverview)) errors.push('Datum-&-Zeit-Übersicht dupliziert den Unix-Timestamp-Konverter');
+if (!developerOverview.includes('href="/tools/entwickler/unix-timestamp/"')) errors.push('Unix-Timestamp-Konverter fehlt in der Entwickler-Übersicht');
+if ((sitemap.match(/\/tools\/entwickler\/unix-timestamp\//g) || []).length !== 1) errors.push('Unix-Timestamp-Konverter ist in der Sitemap nicht genau einmal am Entwickler-Pfad enthalten');
+if (fs.existsSync(path.join(root, 'tools/datum-zeit/unix-timestamp/index.html'))) errors.push('Unzulässiges Unix-Timestamp-Duplikat in Datum & Zeit gefunden');
+if (!fs.readFileSync(path.join(root, 'index.html'), 'utf8').includes('href="/tools/datum-zeit/"')) errors.push('Startseite verlinkt Datum & Zeit nicht');
+
+const datetimeApplication = ['assets/js/datetime-tools-core.js', 'assets/js/datetime-tools-app.js'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
+const unsafeDatetimePatterns = [
+  ['Netzwerkrequest', /\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|FormData/i],
+  ['Persistenz', /localStorage|sessionStorage|indexedDB|document\.cookie|caches\.(?:open|match)/i],
+  ['Unsichere dynamische Ausgabe', /\.innerHTML\s*=|document\.write/i],
+  ['Dynamische Codeausführung', /\beval\s*\(|new\s+Function\s*\(/i],
+  ['Externer Endpunkt', /https?:\/\//i],
+  ['Eingabe-Logging', /console\.(?:log|debug|info|warn|error)/i]
+];
+for (const [label, pattern] of unsafeDatetimePatterns) if (pattern.test(datetimeApplication)) errors.push(`Datum-&-Zeit-Anwendung enthält verbotenes Muster: ${label}`);
 
 const developerApplication = ['assets/js/developer-tools-core.js', 'assets/js/developer-tools-app.js'].map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 const unsafeDeveloperPatterns = [

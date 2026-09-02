@@ -228,6 +228,10 @@ p, h1, h2, h3 { margin-top: 0; }
 .calculator-result-list > div { display: grid; grid-template-columns: minmax(130px, .5fr) minmax(0, 1fr); gap: 16px; padding: 10px 0; border-top: 1px solid var(--line-soft); }
 .calculator-result-list dt { color: var(--muted); font-weight: 700; }
 .calculator-result-list dd { min-width: 0; margin: 0; color: var(--muted-strong); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.datetime-icon { border: 1px solid rgba(103,213,210,.28); background: rgba(103,213,210,.09); color: var(--cyan); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .78rem; }
+.datetime-tool-app { min-width: 0; }
+.datetime-tool-app .option { margin-top: 14px; }
+.datetime-result-list dd { font-variant-numeric: tabular-nums; }
 .vat-presets { margin-top: 14px; }
 .regex-flags { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-bottom: 18px; }
 .regex-preview mark { border-radius: 3px; background: #ded76a; color: #111218; }
